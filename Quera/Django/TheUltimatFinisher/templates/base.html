@@ -1,0 +1,134 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dynamic Form Builder{% endblock %}</title>
+    
+    <!-- Bootstrap CSS (local) -->
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+
+    <!-- Font Awesome (local) -->
+    <link href="{% static 'vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+
+    <!-- Tagify CSS (local) -->
+    <link href="{% static 'vendor/tagify/tagify.css' %}" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'form_list' %}">
+                <i class="fas fa-clipboard-list me-2"></i>
+                Form Builder
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'form_list' %}">
+                                <i class="fas fa-list me-1"></i>My Forms
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'form_create' %}">
+                                <i class="fas fa-plus me-1"></i>Create Form
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>{{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/admin/">Admin Panel</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form id="logout-form" action="/admin/logout/" method="post" style="display: none;">
+                                            {% csrf_token %}
+                                        </form>
+                                        <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                            Logout
+                                        </a>
+                                    </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/login/">Login</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="container my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0 text-muted">
+                &copy; 2025 Dynamic Form Builder - Django Contest Problem
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS bundle (local, includes Popper) -->
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+    <!-- jQuery (local). Keep only if your custom JS actually needs it -->
+    <script src="{% static 'vendor/jquery/jquery-3.6.0.min.js' %}"></script>
+
+    <!-- Tagify (local) -->
+    <script src="{% static 'vendor/tagify/tagify.js' %}"></script>
+
+    <!-- Custom JS -->
+    <script src="{% static 'js/main.js' %}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+        const input = document.querySelector('.tagify-input');
+        if (input) {
+            new Tagify(input, {
+            delimiters: "\n",
+            duplicates: false,
+            originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join("\n"),
+            });
+        }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

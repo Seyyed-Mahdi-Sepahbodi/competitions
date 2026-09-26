@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Responses - {{ form.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .response-card {
+        transition: all 0.3s ease;
+    }
+    .response-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .export-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .card {
+        height: 100%;
+    }
+    .card-body {
+        align-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="fas fa-chart-bar me-2"></i>Form Responses</h1>
+        <p class="text-muted mb-0">{{ form.title }}</p>
+    </div>
+    <div>
+        <a href="{% url 'form_analytics' form.pk %}" class="btn btn-info me-2">
+            <i class="fas fa-analytics me-1"></i>Analytics
+        </a>
+        <a href="{% url 'form_builder' form.pk %}" class="btn btn-outline-primary">
+            <i class="fas fa-edit me-1"></i>Edit Form
+        </a>
+    </div>
+</div>
+
+<!-- Export Section -->
+<div class="export-section">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h5 class="mb-1"><i class="fas fa-download me-2"></i>Export Responses</h5>
+            <p class="text-muted mb-0">Download all responses in various formats</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-success" onclick="exportResponses('csv')">
+                    <i class="fas fa-file-csv me-1"></i>CSV
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="exportResponses('excel')">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="exportResponses('pdf')">
+                    <i class="fas fa-file-pdf me-1"></i>PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Overview -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white" style="background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark, #0056b3) 100%)">
+            <div class="card-body text-center">
+                <i class="fas fa-reply fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ responses.count }}</h3>
+                <small>Total Responses</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+            <div class="card-body text-center">
+                <i class="fas fa-eye fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ form.views.count }}</h3>
+                <small>Total Views</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white" style="background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ form.get_completion_rate|floatformat:1 }}%</h3>
+                <small>Completion Rate</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white" style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-2x mb-2"></i>
+                <h3 class="mb-0">
+                    {% if responses %}
+                        {{ responses.first.submitted_at|timesince }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </h3>
+                <small>Latest Response</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Responses</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">From Date</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" 
+                       value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">To Date</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" 
+                       value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search in Responses</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="Search responses..." value="{{ request.GET.search }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Responses List -->
+{% if responses %}
+    <div class="row">
+        {% for response in responses %}
+            <div class="col-lg-6 mb-4">
+                <div class="card response-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">
+                                Response #{{ response.id }}
+                                {% if response.submitted_by %}
+                                    <small class="text-muted">by {{ response.submitted_by.username }}</small>
+                                {% else %}
+                                    <small class="text-muted">Anonymous</small>
+                                {% endif %}
+                            </h6>
+                        </div>
+                        <small class="text-muted">{{ response.submitted_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <div class="card-body">
+                        {% for data in response.data.all|slice:":3" %}
+                            <div class="mb-2">
+                                <strong>{{ data.field.label }}:</strong>
+                                <span class="text-muted">{{ data.get_display_value|truncatewords:8 }}</span>
+                            </div>
+                        {% endfor %}
+                        
+                        {% if response.data.count > 3 %}
+                            <div class="text-muted small">
+                                <i class="fas fa-ellipsis-h me-1"></i>
+                                {{ response.data.count|add:"-3" }} more field{{ response.data.count|add:"-3"|pluralize }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-time me-1"></i>completion time: {{ response.get_completion_time_display }}
+                            </small>
+                            <a href="{% url 'response_detail' response.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+        <nav aria-label="Responses pagination">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+        <h3>No responses yet</h3>
+        <p class="text-muted">Share your form to start collecting responses!</p>
+        <div class="mt-3">
+            <button class="btn btn-primary" onclick="copyFormUrl()">
+                <i class="fas fa-copy me-1"></i>Copy Form URL
+            </button>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function exportResponses(format) {
+    // Get current filter parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const exportUrl = `{% url 'export_responses' form.pk 'FORMAT' %}`.replace('FORMAT', format);
+    
+    // Add filter parameters to export URL
+    const params = new URLSearchParams();
+    if (urlParams.get('date_from')) params.set('date_from', urlParams.get('date_from'));
+    if (urlParams.get('date_to')) params.set('date_to', urlParams.get('date_to'));
+    if (urlParams.get('search')) params.set('search', urlParams.get('search'));
+    
+    const finalUrl = params.toString() ? `${exportUrl}?${params.toString()}` : exportUrl;
+    
+    window.showToast(`Exporting responses as ${format.toUpperCase()}...`, 'info');
+    
+    // Create a temporary link and click it to download
+    const link = document.createElement('a');
+    link.href = finalUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => {
+        window.showToast(`${format.toUpperCase()} export completed!`, 'success');
+    }, 1000);
+}
+
+function copyFormUrl() {
+    var formUrl = "{{ request.scheme }}://{{ request.get_host }}{% url 'form_detail' form.pk %}";
+    window.copyToClipboard(formUrl);
+}
+</script>
+{% endblock %}

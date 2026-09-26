@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Delete {{ object }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h2 class="mb-0"><i class="fas fa-trash me-2"></i>Delete Field</h2>
+            </div>
+            
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning!</strong> This action cannot be undone.
+                </div>
+                
+                <p>Are you sure you want to delete the response <strong>"{{ object.label }}"</strong>?</p>
+                
+                <div class="card bg-light response-card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">
+                                Response #{{ object.id }}
+                                {% if object.submitted_by %}
+                                    <small class="text-muted">by {{ object.submitted_by.username }}</small>
+                                {% else %}
+                                    <small class="text-muted">Anonymous</small>
+                                {% endif %}
+                            </h6>
+                        </div>
+                        <small class="text-muted">{{ object.submitted_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <div class="card-body">
+                        {% for data in object.data.all|slice:":3" %}
+                            <div class="mb-2">
+                                <strong>{{ data.field.label }}:</strong>
+                                <span class="text-muted">{{ data.get_display_value|truncatewords:8 }}</span>
+                            </div>
+                        {% endfor %}
+                        
+                        {% if object.data.count > 3 %}
+                            <div class="text-muted small">
+                                <i class="fas fa-ellipsis-h me-1"></i>
+                                {{ object.data.count|add:"-3" }} more field{{ object.data.count|add:"-3"|pluralize }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+                
+                <p class="text-muted mt-3">
+                    This response will be permanently deleted.
+                </p>
+            </div>
+            
+            <div class="card-footer">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'form_builder' object.form.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Delete Response
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

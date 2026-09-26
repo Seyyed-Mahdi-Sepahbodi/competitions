@@ -1,0 +1,167 @@
+ {% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Response Details - {{ response.form.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="fas fa-file-alt me-2"></i>Response Details</h1>
+        <p class="text-muted mb-0">{{ response.form.title }} - Response #{{ response.id }}</p>
+    </div>
+    <div>
+        <a href="{% url 'form_responses' response.form.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Responses
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i>Response Data</h5>
+            </div>
+            <div class="card-body">
+                {% for data in response.data.all %}
+                    <div class="row mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="col-md-4">
+                            <strong>{{ data.field.label }}</strong>
+                            <div class="text-muted small">
+                                <i class="{{ data.field.field_type|get_field_type_icon }} me-1"></i>
+                                {{ data.field.get_field_type_display }}
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="response-value">
+                                {% if data.field.field_type == 'file' %}
+                                    {% if data.file %}
+                                        <a href="{{ data.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download me-1"></i>Download File
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">No file uploaded</span>
+                                    {% endif %}
+                                {% elif data.field.field_type == 'url' %}
+                                    {% if data.value %}
+                                        <a href="{{ data.value }}" target="_blank">{{ data.value }}</a>
+                                    {% else %}
+                                        <span class="text-muted">No URL provided</span>
+                                    {% endif %}
+                                {% elif data.field.field_type == 'email' %}
+                                    {% if data.value %}
+                                        <a href="mailto:{{ data.value }}">{{ data.value }}</a>
+                                    {% else %}
+                                        <span class="text-muted">No email provided</span>
+                                    {% endif %}
+                                {% elif data.field.field_type == 'checkbox' %}
+                                    {{ data.get_display_value }}
+                                {% else %}
+                                    {{ data.value|linebreaks }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-exclamation-circle text-warning fa-2x mb-2"></i>
+                        <p class="text-muted">No response data found.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Submission Info</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Submitted:</dt>
+                    <dd class="col-sm-7">{{ response.submitted_at|date:"M d, Y H:i:s" }}</dd>
+                    
+                    <dt class="col-sm-5">Time Ago:</dt>
+                    <dd class="col-sm-7">{{ response.submitted_at|timesince }} ago</dd>
+                    
+                    <dt class="col-sm-5">Timer:</dt>
+                    <dd class="col-sm-7">{{ response.get_completion_time_display|default:"?" }}</dd>
+                    
+                    <dt class="col-sm-5">User:</dt>
+                    <dd class="col-sm-7">
+                        {% if response.submitted_by %}
+                            {{ response.submitted_by.username }}
+                        {% else %}
+                            <span class="text-muted">Anonymous</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="printResponse()">
+                        <i class="fas fa-print me-1"></i>Print Response
+                    </button>
+                    <button class="btn btn-outline-success" onclick="exportResponse('pdf')">
+                        <i class="fas fa-file-pdf me-1"></i>Export as PDF
+                    </button>
+                    <button class="btn btn-outline-info" onclick="copyResponseData()">
+                        <i class="fas fa-copy me-1"></i>Copy Data
+                    </button>
+                    {% if user.is_staff %}
+                        <hr>
+                        <a class="btn btn-outline-danger" href="{% url 'response_delete' object.pk %}">
+                            <i class="fas fa-trash me-1"></i>Delete Response
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function printResponse() {
+    window.print();
+}
+
+function exportResponse(format) {
+    const exportUrl = `{% url 'export_single_response' response.pk 'FORMAT' %}`.replace('FORMAT', format);
+    
+    window.showToast(`Exporting response as ${format.toUpperCase()}...`, 'info');
+    
+    // Create a temporary link and click it to download
+    const link = document.createElement('a');
+    link.href = exportUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => {
+        window.showToast(`Response exported as ${format.toUpperCase()}!`, 'success');
+    }, 1000);
+}
+
+function copyResponseData() {
+    var responseData = '';
+    {% for data in response.data.all %}
+        responseData += '{{ data.field.label }}: {{ data.value|escapejs }}\n';
+    {% endfor %}
+    
+    window.copyToClipboard(responseData);
+}
+
+
+</script>
+{% endblock %}

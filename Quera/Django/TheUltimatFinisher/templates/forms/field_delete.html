@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Delete Field - {{ object.label }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h2 class="mb-0"><i class="fas fa-trash me-2"></i>Delete Field</h2>
+            </div>
+            
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning!</strong> This action cannot be undone.
+                </div>
+                
+                <p>Are you sure you want to delete the field <strong>"{{ object.label }}"</strong>?</p>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="{{ object.field_type|get_field_type_icon }} me-2"></i>
+                            {{ object.label }}
+                            {% if object.is_required %}
+                                <span class="badge bg-danger ms-2">Required</span>
+                            {% endif %}
+                        </h6>
+                        <p class="card-text">
+                            <small class="text-muted">{{ object.get_field_type_display }}</small>
+                        </p>
+                        {% if object.help_text %}
+                            <p class="card-text">{{ object.help_text }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <p class="text-muted mt-3">
+                    All responses for this field will also be deleted.
+                </p>
+            </div>
+            
+            <div class="card-footer">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'form_builder' object.form.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Delete Field
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

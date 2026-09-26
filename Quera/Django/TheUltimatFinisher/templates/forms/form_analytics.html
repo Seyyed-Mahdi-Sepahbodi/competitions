@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Analytics - {{ form.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .analytics-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .stat-card {
+        background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark, #0056b3) 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin: 20px 0;
+    }
+    .field-analytics-item {
+        border-left: 4px solid var(--bs-primary);
+        background: rgba(13, 110, 253, 0.05);
+        border-radius: 0 8px 8px 0;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .progress-custom {
+        height: 8px;
+        border-radius: 4px;
+    }
+    .export-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .card {
+        height: 100%;
+    }
+    .card-body {
+        align-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="fas fa-chart-line me-2"></i>Form Analytics</h1>
+        <p class="text-muted mb-0">{{ form.title }}</p>
+    </div>
+    <div>
+        <a href="{% url 'form_responses' form.pk %}" class="btn btn-info me-2">
+            <i class="fas fa-list me-1"></i>View Responses
+        </a>
+        <a href="{% url 'form_builder' form.pk %}" class="btn btn-outline-primary">
+            <i class="fas fa-edit me-1"></i>Edit Form
+        </a>
+    </div>
+</div>
+
+<!-- Export Section -->
+<div class="export-section">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h4 class="mb-1"><i class="fas fa-download me-2"></i>Export Analytics Report</h4>
+            <p class="text-muted mb-0">Generate comprehensive analytics reports in various formats</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-success" onclick="exportReport('csv')">
+                    <i class="fas fa-file-csv me-1"></i>CSV
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="exportReport('excel')">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="exportReport('pdf')">
+                    <i class="fas fa-file-pdf me-1"></i>PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-reply fa-3x mb-3 opacity-75"></i>
+                <h2 class="mb-1">{{ total_responses|default:0 }}</h2>
+                <p class="mb-0">Total Responses</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-white" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
+            <div class="card-body text-center">
+                <i class="fas fa-eye fa-3x mb-3 opacity-75"></i>
+                <h2 class="mb-1">{{ total_views|default:0 }}</h2>
+                <p class="mb-0">Total Views</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-white" style="background: linear-gradient(135deg, #fd7e14 0%, #e55a00 100%);">
+            <div class="card-body text-center">
+                <i class="fas fa-percentage fa-3x mb-3 opacity-75"></i>
+                <h2 class="mb-1">{{ completion_rate|default:0|floatformat:1 }}%</h2>
+                <p class="mb-0">Completion Rate</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stat-card text-white" style="background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-3x mb-3 opacity-75"></i>
+                <h2 class="mb-1">{{ avg_response_time|default:"N/A" }}</h2>
+                <p class="mb-0">Avg. Response Time</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if total_responses > 0 %}
+    <!-- Charts Section -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Responses Over Time</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="responsesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Response Sources</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="sourcesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field Analytics -->
+    <div class="card analytics-card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Field Analytics</h5>
+        </div>
+        <div class="card-body">
+            {% for field_stat in field_analytics %}
+                <div class="field-analytics-item">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <h6 class="mb-1">
+                                <i class="{{ field_stat.field.field_type|get_field_type_icon }} me-2"></i>
+                                {{ field_stat.field.label }}
+                            </h6>
+                            <small class="text-muted">{{ field_stat.field.get_field_type_display }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2">
+                                <small class="text-muted">Response Rate</small>
+                                <div class="progress progress-custom">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ field_stat.response_rate }}%"
+                                         aria-valuenow="{{ field_stat.response_rate }}" 
+                                         aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ field_stat.response_rate|floatformat:1 }}%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-end">
+                                <div class="h5 mb-0">{{ field_stat.total_responses }}</div>
+                                <small class="text-muted">responses</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if field_stat.choice_distribution %}
+                        <div class="mt-3">
+                            <h6 class="mb-2">Choice Distribution:</h6>
+                            {% for choice, count in field_stat.choice_distribution.items %}
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small">{{ choice }}</span>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 100px; height: 6px;">
+                                            <div class="progress-bar bg-info" 
+                                                 style="width: {{ count|percentage:field_stat.total_responses }}%"></div>
+                                        </div>
+                                        <span class="small text-muted">{{ count }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if field_stat.avg_value %}
+                        <div class="mt-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="small text-muted">Average</div>
+                                    <div class="fw-bold">{{ field_stat.avg_value|floatformat:2 }}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="small text-muted">Minimum</div>
+                                    <div class="fw-bold">{{ field_stat.min_value }}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="small text-muted">Maximum</div>
+                                    <div class="fw-bold">{{ field_stat.max_value }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <div class="text-center py-3">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No field analytics available yet.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Detailed Statistics -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Response Timeline</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Responses</th>
+                                    <th>Growth</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Today</td>
+                                    <td><span class="badge bg-primary">{{ responses_today }}</span></td>
+                                    <td>
+                                        <span class="{% if growth_today >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            <i class="fas {% if growth_today >= 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %}"></i>
+                                            {{ growth_today }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>This Week</td>
+                                    <td><span class="badge bg-info">{{ responses_week }}</span></td>
+                                    <td>
+                                        <span class="{% if growth_week >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            <i class="fas {% if growth_week >= 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %}"></i>
+                                            {{ growth_week }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>This Month</td>
+                                    <td><span class="badge bg-success">{{ responses_month }}</span></td>
+                                    <td>
+                                        <span class="{% if growth_month >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            <i class="fas {% if growth_month >= 0 %}fa-arrow-up{% else %}fa-arrow-down{% endif %}"></i>
+                                            {{ growth_month }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="col-lg-6">
+            <div class="card analytics-card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>User Insights</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="border-end">
+                                <div class="h4 text-primary mb-1">{{ registered_users_count }}</div>
+                                <small class="text-muted">Registered Users</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="h4 text-warning mb-1">{{ anonymous_users_count }}</div>
+                            <small class="text-muted">Anonymous Users</small>
+                        </div>
+                        <div class="col-12">
+                            <div class="progress progress-custom">
+                                <div class="progress-bar bg-primary" style="width: {{ registered_users_count|percentage:total_responses }}%"></div>
+                                <div class="progress-bar bg-warning" style="width: {{ anonymous_users_count|percentage:total_responses }}%"></div>
+                            </div>
+                            <small class="text-muted mt-1 d-block">User Type Distribution</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- No Data State -->
+    <div class="card analytics-card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-chart-line fa-4x text-muted mb-4"></i>
+            <h3>No Analytics Data Yet</h3>
+            <p class="text-muted mb-4">Start collecting responses to see detailed analytics and insights.</p>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="share-url" 
+                               value="{{ request.build_absolute_uri }}" readonly>
+                        <button class="btn btn-primary" type="button" onclick="copyFormUrl()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted">Share this URL to start collecting responses</small>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js (local UMD build) -->
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    {% if total_responses > 0 %}
+        // Responses Over Time Chart
+        const responsesData = {{ responses_by_day|safe }};
+        const responsesCtx = document.getElementById('responsesChart').getContext('2d');
+        
+        const dates = Object.keys(responsesData).sort();
+        const values = dates.map(date => responsesData[date] || 0);
+        
+        new Chart(responsesCtx, {
+            type: 'line',
+            data: {
+                labels: dates.map(date => new Date(date).toLocaleDateString()),
+                datasets: [{
+                    label: 'Responses',
+                    data: values,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Response Sources Chart
+        const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
+        new Chart(sourcesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Direct', 'Referral', 'Social', 'Email'],
+                datasets: [{
+                    data: [45, 25, 20, 10],
+                    backgroundColor: [
+                        '#0d6efd',
+                        '#198754',
+                        '#fd7e14',
+                        '#6f42c1'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    {% endif %}
+});
+
+function exportReport(format) {
+    const exportUrl = `{% url 'export_analytics' form.pk 'FORMAT' %}`.replace('FORMAT', format);
+    
+    window.showToast(`Generating ${format.toUpperCase()} analytics report...`, 'info');
+    
+    // Create a temporary link and click it to download
+    const link = document.createElement('a');
+    link.href = exportUrl;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => {
+        window.showToast(`${format.toUpperCase()} report generated successfully!`, 'success');
+    }, 1000);
+}
+
+function copyFormUrl() {
+    var formUrl = "{{ request.scheme }}://{{ request.get_host }}{% url 'form_detail' form.pk %}";
+    window.copyToClipboard(formUrl);
+}
+</script>
+{% endblock %}

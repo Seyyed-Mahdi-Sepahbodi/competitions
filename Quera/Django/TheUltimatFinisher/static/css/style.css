@@ -1,0 +1,247 @@
+/* Custom styles for Dynamic Form Builder */
+
+:root {
+  --primary-color: #0d6efd;
+  --secondary-color: #6c757d;
+  --success-color: #198754;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #0dcaf0;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* Navigation */
+.navbar-brand {
+  font-weight: 600;
+}
+
+/* Cards */
+.card {
+  border: none;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.card-header {
+  border-radius: 10px 10px 0 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Statistics */
+.stat-item {
+  padding: 0.5rem;
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Form styling */
+.form-control,
+.form-select {
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-label {
+  font-weight: 500;
+  color: var(--dark-color);
+  margin-bottom: 0.5rem;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+  border: none;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+  border: none;
+}
+
+/* Field builder specific styles */
+.field-item {
+  border-left: 4px solid var(--primary-color);
+  transition: all 0.3s ease;
+}
+
+.field-item:hover {
+  border-left-color: var(--success-color);
+}
+
+.drag-handle {
+  color: var(--secondary-color);
+  font-size: 1.2rem;
+  cursor: grab;
+  transition: color 0.3s ease;
+}
+
+.drag-handle:hover {
+  color: var(--primary-color);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Sortable styles */
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--light-color);
+}
+
+/* Form field groups */
+.field-group {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.field-group:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Conditional fields */
+.conditional-field {
+  border-left: 3px solid var(--info-color);
+  background: rgba(13, 202, 240, 0.05);
+}
+
+/* Radio and checkbox styling */
+.form-check-input {
+  border-radius: 4px;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* File upload styling */
+.form-control[type="file"] {
+  padding: 0.5rem;
+}
+
+/* Alert styling */
+.alert {
+  border-radius: 8px;
+  border: none;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+  padding: 0.5em 0.75em;
+}
+
+/* Footer */
+footer {
+  margin-top: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+
+  .btn-group .btn {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.25rem;
+  }
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--secondary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .btn,
+  .card-footer {
+    display: none !important;
+  }
+
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+}

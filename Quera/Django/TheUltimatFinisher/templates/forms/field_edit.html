@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Edit Field - {{ object.label }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .field-options-group, .field-validation-group {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h2 class="mb-0"><i class="fas fa-edit me-2"></i>Edit Field</h2>
+                <p class="mb-0 mt-1">{{ object.form.title }}</p>
+            </div>
+            
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <div class="card-body">
+                    <!-- Basic Field Information -->
+                    <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Basic Information</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.label.id_for_label }}" class="form-label">
+                                {{ form.label.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.label }}
+                            {% if form.label.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.label.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.field_type.id_for_label }}" class="form-label">
+                                {{ form.field_type.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.field_type|add_class:"form-select" }}
+                            {% if form.field_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.field_type.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.placeholder.id_for_label }}" class="form-label">
+                                {{ form.placeholder.label }}
+                            </label>
+                            {{ form.placeholder }}
+                            {% if form.placeholder.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.placeholder.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                <input type="checkbox" class="form-check-input" id="{{ form.is_required.id_for_label }}" name="{{ form.is_required.html_name }}" {% if form.is_required.value %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ form.is_required.id_for_label }}">
+                                    {{ form.is_required.label }}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.help_text.id_for_label }}" class="form-label">
+                                {{ form.help_text.label }}
+                            </label>
+                            {{ form.help_text }}
+                            {% if form.help_text.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.help_text.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Field Options (for choice fields) -->
+                    <div class="field-options-group" id="field-options" style="display: none;">
+                        <h5 class="mb-3"><i class="fas fa-list me-2"></i>Field Options</h5>
+                        <div class="mb-3">
+                            <label for="{{ form.options_text.id_for_label }}" class="form-label">
+                                {{ form.options_text.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.options_text|add_class:"tagify-input" }}
+                            <div class="form-text">{{ form.options_text.help_text }}</div>
+                            {% if form.options_text.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.options_text.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Validation Rules -->
+                    <div class="field-validation-group">
+                        <h5 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Validation Rules</h5>
+                        
+                        <div class="row length-validation">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.min_length.id_for_label }}" class="form-label">
+                                    {{ form.min_length.label }}
+                                </label>
+                                {{ form.min_length }}
+                                {% if form.min_length.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.min_length.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.max_length.id_for_label }}" class="form-label">
+                                    {{ form.max_length.label }}
+                                </label>
+                                {{ form.max_length }}
+                                {% if form.max_length.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.max_length.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row value-validation" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.min_value.id_for_label }}" class="form-label">
+                                    {{ form.min_value.label }}
+                                </label>
+                                {{ form.min_value }}
+                                {% if form.min_value.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.min_value.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.max_value.id_for_label }}" class="form-label">
+                                    {{ form.max_value.label }}
+                                </label>
+                                {{ form.max_value }}
+                                {% if form.max_value.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.max_value.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.regex_pattern.id_for_label }}" class="form-label">
+                                    {{ form.regex_pattern.label }}
+                                </label>
+                                {{ form.regex_pattern }}
+                                <div class="form-text">Advanced: Custom regex pattern for validation</div>
+                                {% if form.regex_pattern.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.regex_pattern.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.custom_error_message.id_for_label }}" class="form-label">
+                                    {{ form.custom_error_message.label }}
+                                </label>
+                                {{ form.custom_error_message }}
+                                {% if form.custom_error_message.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.custom_error_message.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'form_builder' object.form.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i>Update Field
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    function updateFieldOptions() {
+        var fieldType = $('#id_field_type').val();
+        var $optionsGroup = $('#field-options');
+        var $lengthValidation = $('.length-validation');
+        var $valueValidation = $('.value-validation');
+        
+        // Show/hide options based on field type
+        if (['select', 'radio', 'checkbox'].includes(fieldType)) {
+            $optionsGroup.show();
+        } else {
+            $optionsGroup.hide();
+        }
+        
+        // Show/hide validation options
+        if (['text', 'textarea', 'email', 'url', 'phone'].includes(fieldType)) {
+            $lengthValidation.show();
+        } else {
+            $lengthValidation.hide();
+        }
+        
+        if (fieldType === 'number') {
+            $valueValidation.show();
+        } else {
+            $valueValidation.hide();
+        }
+    }
+    
+    $('#id_field_type').on('change', updateFieldOptions);
+    updateFieldOptions(); // Initial call
+});
+</script>
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Form Builder - {{ form.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .field-item {
+        transition: all 0.3s ease;
+    }
+    .field-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .sortable-ghost {
+        opacity: 0.4;
+    }
+    .drag-handle {
+        cursor: grab;
+    }
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Added hidden CSRF token for AJAX requests -->
+<form style="display: none;">
+    {% csrf_token %}
+</form>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1><i class="fas fa-tools me-2"></i>Form Builder</h1>
+        <p class="text-muted mb-0">{{ form.title }}</p>
+    </div>
+    <div>
+        <a href="{% url 'form_detail' form.pk %}" class="btn btn-outline-primary me-2" target="_blank">
+            <i class="fas fa-eye me-1"></i>Preview Form
+        </a>
+        <a href="{% url 'field_create' form.pk %}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i>Add Field
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Form Fields
+                    <span class="badge bg-secondary ms-2">{{ fields.count }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if fields %}
+                    <div id="fields-container">
+                        {% for field in fields %}
+                            <div class="field-item card mb-3" data-field-id="{{ field.id }}">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-1">
+                                            <div class="drag-handle text-muted">
+                                                <i class="fas fa-grip-vertical"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-8">
+                                            <h6 class="mb-1">
+                                                {{ field.label }}
+                                                {% if field.is_required %}
+                                                    <span class="text-danger">*</span>
+                                                {% endif %}
+                                            </h6>
+                                            <div class="text-muted small">
+                                                <span class="badge bg-light text-dark me-2">{{ field.get_field_type_display }}</span>
+                                                {% if field.help_text %}
+                                                    {{ field.help_text|truncatewords:10 }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-3 text-end">
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'field_edit' field.pk %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'field_delete' field.pk %}" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-plus-circle fa-4x text-muted mb-3"></i>
+                        <h4>No fields yet</h4>
+                        <p class="text-muted">Add your first field to get started building your form.</p>
+                        <a href="{% url 'field_create' form.pk %}" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Add First Field
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Form Info</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Status:</dt>
+                    <dd class="col-sm-7">
+                        {% if form.can_accept_submissions %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-5">Fields:</dt>
+                    <dd class="col-sm-7">{{ fields.count }}</dd>
+                    
+                    <dt class="col-sm-5">Responses:</dt>
+                    <dd class="col-sm-7">{{ form.get_response_count }}</dd>
+                    
+                    <dt class="col-sm-5">Created:</dt>
+                    <dd class="col-sm-7">{{ form.created_at|date:"M d, Y" }}</dd>
+                    
+                    {% if form.expires_at %}
+                        <dt class="col-sm-5">Expires:</dt>
+                        <dd class="col-sm-7">{{ form.expires_at|date:"M d, Y H:i" }}</dd>
+                    {% endif %}
+                </dl>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'form_edit' form.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-cog me-1"></i>Form Settings
+                    </a>
+                    <a href="{% url 'form_responses' form.pk %}" class="btn btn-outline-info">
+                        <i class="fas fa-chart-bar me-1"></i>View Responses
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-share me-2"></i>Share Form</h5>
+            </div>
+            <div class="card-body">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="form-url" 
+                           value="{{ request.build_absolute_uri }}" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyFormUrl()">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <small class="text-muted">Share this URL to collect responses</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- SortableJS (local) -->
+<script src="{% static 'vendor/sortablejs/Sortable.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Initialize sortable
+    var fieldsContainer = document.getElementById('fields-container');
+    if (fieldsContainer) {
+        var sortable = Sortable.create(fieldsContainer, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function(evt) {
+                // Get new order
+                var fieldIds = [];
+                $('#fields-container .field-item').each(function() {
+                    fieldIds.push($(this).data('field-id'));
+                });
+                
+                // Send AJAX request to update order
+                $.post('{% url "ajax_reorder_fields" %}', {
+                    'field_ids[]': fieldIds,
+                    'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+                }).done(function(data) {
+                    if (data.success) {
+                        // Show success message
+                        showToast('Field order updated successfully', 'success');
+                    }
+                }).fail(function() {
+                    showToast('Failed to update field order', 'error');
+                });
+            }
+        });
+    }
+});
+
+function copyFormUrl() {
+    var urlInput = document.getElementById('form-url');
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    showToast('Form URL copied to clipboard!', 'success');
+}
+
+function showToast(message, type) {
+    var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    var toast = $('<div class="alert ' + alertClass + ' alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">' +
+                  message +
+                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                  '</div>');
+    
+    $('body').append(toast);
+    
+    setTimeout(function() {
+        toast.alert('close');
+    }, 3000);
+}
+</script>
+{% endblock %}
