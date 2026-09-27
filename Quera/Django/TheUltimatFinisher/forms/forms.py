@@ -129,15 +129,15 @@ class FieldCreationForm(forms.ModelForm):
 
 
 class DynamicForm(forms.Form):
-    
+
     def __init__(self, form_instance, *args, **kwargs):
         self.form_instance = form_instance
         super().__init__(*args, **kwargs)
-        
+
         for field in form_instance.fields.all():
             field_name = f'field_{field.id}'
-            
-            
+
+
             if field.field_type == 'text':
                 form_field = forms.CharField(
                     max_length=field.max_length or 255,
@@ -197,23 +197,70 @@ class DynamicForm(forms.Form):
                 )
             else:
                 form_field = forms.CharField(required=field.is_required)
-            
-            
+
+
             form_field.label = field.label
             form_field.help_text = field.help_text
-            
-            
+
+
             widget_attrs = {'class': 'form-control'}
             if field.placeholder:
                 widget_attrs['placeholder'] = field.placeholder
-            
+
             if hasattr(form_field.widget, 'attrs'):
                 form_field.widget.attrs.update(widget_attrs)
-            
+
             self.fields[field_name] = form_field
-    
+
     def clean(self):
-        pass
+        cleaned_data = super(DynamicForm, self).clean()
+
+        for field_obj in self.form_instance.fields.all():
+            field_name = f"field_{field_obj.id}"
+            value = cleaned_data.get(field_name)
+
+            errors = field_obj.validate_value(value)
+            if errors:
+                for error in errors:
+                    self.add_error(field_name, error)
+
+        return cleaned_data
 
     def save(self, user=None, session_key=None, completion_time=None):
-        pass
+        if not self.is_valid():
+            return None
+
+        response = Response(
+            form=self.form_instance,
+            submitted_by=user,
+            session_key=session_key,
+            completion_time=completion_time,
+        )
+
+        for field_obj in self.form_instance.fields.all():
+            field_name = f"field_{field_obj.id}"
+            value = self.cleaned_data.get(field_name)
+
+            if value is None or value == "" or value == []:
+                continue
+
+            if field_obj.field_type == "file":
+                ResponseData.objects.create(
+                    response=response,
+                    field=field_obj,
+                    file=value,                   
+                )
+            else:
+                if field_obj.type == "checkbox" and isinstance(value, list):
+                    stored_value = json.dumps(value)
+                else:
+                    stored_value = str(value)
+                ResponseData.objects.create(
+                    response=response,
+                    field=field_obj,
+                    value=stored_value,
+                )
+
+        return Response
+
+
