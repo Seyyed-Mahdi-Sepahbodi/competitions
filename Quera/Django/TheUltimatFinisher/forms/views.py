@@ -94,7 +94,7 @@ class FormDetailView(DetailView):
         form = get_object_or_404(Form, pk=self.kwargs['pk'])
         referrer = self.request.META.get('HTTP_REFERER', '')
 
-        
+
         if self.request.user.is_authenticated:
             
             FormView.objects.get_or_create(
@@ -191,25 +191,92 @@ class FieldUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class FieldDeleteView(LoginRequiredMixin, DeleteView):
-    
+
     model = Field
     template_name = 'forms/field_delete.html'
-    
+
     def get_queryset(self):
         return Field.objects.filter(form__created_by=self.request.user)
-    
+
     def get_success_url(self):
         messages.success(self.request, 'Field deleted successfully!')
         return reverse('form_builder', kwargs={'pk': self.object.form.pk})
 
 
 class FormSubmissionView(DetailView):
-    
+
     model = Form
     template_name = 'forms/form_detail.html'
-    
+
     def post(self, request, *args, **kwargs):
-        pass
+        self.object = self.get_object()
+        form = self.object
+
+        if form.can_accept_submissions:
+            messages.error(request, 'This form is no longer accepting submissions.')
+            return redirect("form_detail", pk=form.pk)
+
+        if request.session.session_key is None:
+            request.session.create()
+        session_key = request.session.session_key
+
+        if not form.allow_multiple_submissions:
+            if request.user.is_authenticated:
+                already_submitted = Response.objects.filter(
+                    form=form,
+                    submitted_by=request.user,
+                ).exists()
+            else:
+                  already_submitted = Response.objects.filter(
+                    form=form,
+                    session_key=session_key,
+                  ).exists()
+            
+            if already_submitted:
+                messages.error(request, 'You have already submitted this form.')
+                return redirect("form_detail", pk=form.pk)
+
+        dynamic_form = DynamicForm(form, request.POST, request.FILES)
+
+        if dynamic_form.is_valid:
+
+            completion_seconds = request.session.get("form_completion_time")
+            completion_time = (
+                timedelta(seconds=completion_seconds)
+                if completion_seconds is not None
+                else None
+            )
+
+            dynamic_form.save(
+                user=request.user if request.user.is_authenticated() else None,
+                session_key=session_key,
+                completion_time=completion_time,
+            )
+
+            request.session.pop("form_completion_time", None)
+            request.session.modified = True
+
+            referrer = requet.META.get("HTTP_REFERRER", "")
+
+            if request.user.is_authenticated():
+                FormView.objects.get_or_create(
+                    form=form,
+                    viewed_by=request.user,
+                    defaults={"referrer": referrer},
+                )
+            else:
+                FormView.objects.get_or_create(
+                    form=form,
+                    session_key=session_key,
+                    defaults={"referrer": referrer},
+                )
+
+            return redirect("form_success", pk=form.pk)
+
+        context = self.get_context_data()
+        context['dynamic_form'] = dynamic_form
+        return self.render_to_response(context)
+
 
 class FormSuccessView(DetailView):
     
